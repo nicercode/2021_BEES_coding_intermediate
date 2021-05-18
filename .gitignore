@@ -1,0 +1,9 @@
+*/.Rproj.user/*
+.Rhistory
+.RData
+.Ruserdata
+*.html
+*.DS_Store
+.Rproj.user
+public*
+output*
