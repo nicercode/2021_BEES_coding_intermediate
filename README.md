@@ -25,3 +25,27 @@ install.packages("devtools")
 install.packages("broom")
 install.packages("tidyverse")
 ```
+
+Location: GO7 CATS ROOM - Computer lab
+
+
+## Overview
+
+### Day 1
+- Outline of course, logistics, housekeeping - Daniel
+- Intro to for loops - Will
+- Tidyverse refresh - Fonti + Daniel
+  - Pipes
+  - dplyr
+- Vectorised functions - Daniel
+- purrr (map, map2 and variants) - Aniko
+
+### Day 2
+- Gapminder intro - Will
+- Structure of a function - Fonti 
+- Using own functions with map - Daniel
+- Anonymous functions in map - Aniko
+- Longer functions - Will
+
+
+
