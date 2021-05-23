@@ -1,0 +1,264 @@
+---
+title: "Writing your own functions in R"
+author: "Will Cornwell & Daniel Falster"
+output: html_notebook
+editor_options: 
+  chunk_output_type: console
+---
+
+# Introduction
+
+The goal of this session is to learn how to write your own functions in R. 
+
+Three big reasons to write functions
+
+1. Using function to reuse code / avoid repeated code
+2. Using function to tidy up your analysis
+3. Using (anonymous) functions to extend possibilities in dplyr or map workflows 
+
+Research is by definition new, and so sometimes you have to do things that no one has done before.  If you do that new thing more than once, it's worth writing it into a function
+
+Use similar packages and data to yesterday 
+```{r}
+library(tidyverse)
+```
+
+This was the data we worked with yesterday:
+
+```{r}
+carnivore_data <- list.files("data/species/", full.names = TRUE) %>% map_df(read_csv)
+```
+
+Introduce new dataset
+```{r}
+data_gapminder <- read_csv("data/gapminder/gapminder-FiveYearData.csv")
+```
+
+## First some cake
+
+Example 1 - tidy & turbo charge model fitting
+
+```{r}
+fit_model <- function(data) { 
+  lm(lifeExp~gdpPercap, data=data)
+}
+
+get_r2 <- function(fit) { 
+  summary(fit)$r.squared
+}
+
+fits <- 
+  data_gapminder %>% 
+  split(.$country) %>% 
+  map(fit_model)
+
+map_dbl(fits, get_r2)
+```
+
+
+Example 2 - tidy & turbo charge plotting
+```{r}
+
+make_plot <- function(data, this_year) {
+  data %>%
+  data_gapminder %>%
+    filter(year == this_year) %>%
+    ggplot(aes(gdpPercap, lifeExp, colour = continent)) +
+    geom_point(size=3) +
+    scale_x_log10(limits =c(200, 200000)) +
+    scale_y_log10( limits = c(20, 100)) +
+    theme_minimal() +
+    labs(x = "GDP per capita", y = "Life expectancy (yrs)", title = this_year)
+}
+
+make_plot(data_gapminder, 1982) %>% print()
+
+dir.create("output/by_year", FALSE, TRUE)
+for(year in unique(data_gapminder$year)){
+  make_plot(data_gapminder, year) 
+  ggsave(paste0("output/by_year/", year, ".png"))
+}
+```
+
+# Structure of a function
+
+function structure (rowSums)
+
+- name
+- body
+- arguments
+
+investigating structure of function f 
+
+- `args(f)`
+- `body(f)` or just `f`
+- return value
+- ?help
+- named vs ordered arguments
+- default arguments
+
+```{r}
+mymean <- function(..., na.rm=TRUE) {
+  mean(..., na.rm=na.rm)
+}
+```
+
+**Exercises**: 
+
+Goal: extract the most northern observations for each species in the southern hemisphere
+
+Write a function that largest value that is below 0
+
+group_by and summerize using your new function
+
+1. 
+```{r}
+carnivore_data <- list.files("data/species", full.names = TRUE) %>% map_df(read_csv)
+
+
+most_northern_south<-function(x){
+  max(x[x<0])
+}
+
+group_by(carnivore_data,scientificName) %>%
+  summarize(most_northern_south(decimalLatitude))
+
+```
+
+2. if your function returns -Inf for some cases, change what it returns to NA possibly using an if statement inside the function.  This is called handling edge cases ellagantly.  Of course this can be done outside the function, but it's a better, more robust function if this is done internally.  
+
+```{r}
+
+```
+
+3. write a function that takes the dataframe and a family name and plots the distribution for each family and saves it to the output file 
+
+```{r}
+
+```
+
+
+# Combining functions with map
+
+From yesterday, we had this example
+
+```{r}
+list.files("data/species", full.names = TRUE) %>% map_df(read_csv) 
+```
+
+What if we want to record which files each data point came from?
+
+**Exercise**: Write a function that loads a file and adds the filename in a new column of the data
+
+```{r}
+
+```
+
+
+**Challenge:** 
+
+1. the journal asks you to provide a list of species names with just the genus and species, e.g. 
+
+"Urva javanica" instead of "Urva javanica (E.Geoffroy St.Hilaire, 1818)"
+
+Write a function to separate out the first two words from scientificName and use a map function to apply this to the full species list
+
+Hint - the function `str_sep` may be helpful
+
+
+```{r}
+
+```
+
+**Exercise**: Your colleague asks you to match your data againt theirs. They have used 6-letter abbreviations for species, ie. "urvjav" for "Urva javanica"
+
+Write a function to separate out the first two words from scientificName and use a map function to apply this to the full specvies list
+
+```{r}
+
+
+```
+
+## Anonymous functions
+
+Remember we did this:
+
+```{r}
+load_file <- function(x){
+  read_csv(x) %>% mutate(filename = x)
+}
+
+list.files("data/species", full.names = TRUE) %>% map_df(load_file) 
+```
+
+
+Another way:
+
+```{r}
+list.files("data/species", full.names = TRUE) %>% 
+  map_df(~ read_csv(.x) %>% mutate(filename = .x)) 
+```
+
+
+**Exercise**: Reimplement the following example as an anonynomous function
+
+```{r}
+
+
+```
+
+
+## Writing longer functions
+
+Store these in another file and load using `source`
+
+Identify the bit that will differ and 
+
+
+**Exercise**: Write a function called `load_data` that loads the carnivora data and creates a column2 with short name and very short name
+
+```{r}
+
+load_file <- function(x) {
+  read_csv(x, col_types = 
+      cols(
+        scientificName = col_character(),
+        family = col_character(),
+        decimalLatitude = col_double(),
+        decimalLongitude = col_double(),
+        genus = col_character(),
+        order = col_character()
+          )
+      ) %>% 
+    mutate(filename = x)
+}
+
+short_name <- function(x) {
+  x2 <- x %>% str_split(" ")
+  paste(x2[[1]][1], x2[[1]][2])
+}
+
+
+very_short_name <- function(x) {
+  x2 <- x %>% str_split(" ")
+  paste0(str_sub(x2[[1]][1], 1,3), str_sub(x2[[1]][2], 1,3))
+}
+
+load_data <- function() {
+    list.files("data/species", full.names = TRUE) %>% 
+    map_df(load_file) %>%
+    mutate(
+      species = scientificName %>% map_chr(short_name),
+      species6 = scientificName %>% map_chr(very_short_name)
+    )
+} 
+
+data <- load_data()
+
+```
+
+
+
+
+
+
