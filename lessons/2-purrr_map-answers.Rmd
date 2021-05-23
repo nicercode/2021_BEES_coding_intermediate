@@ -76,7 +76,7 @@ First, try using for loop
 n <- list()
 for(f in unique(data$family)) {
   data_sub <- subset(data, data$family ==f)
-  n[[f]] <- data.frame(family=f, n = length(unique(data_sub$scientificName)))
+  n[[f]] <- data.frame(family=f, n = n_distinct(data_sub$scientificName))
 }
 bind_rows(n)
 ```
@@ -155,7 +155,7 @@ Examples:
 ```{r}
 data %>% select(scientificName, genus, ends_with("tude")) %>% 
   filter(genus == "Aonyx") %>% 
-  summarise(total_n = length(unique(.)))
+  summarise(total_n = n())
 ```
 
 

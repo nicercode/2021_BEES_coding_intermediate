@@ -1,14 +1,14 @@
 #!/bin/bash
 
-release=public/2021_bees_data_intro
+release=public/2021_bees_data_inter
 
 rm -rf $release
 mkdir public
 mkdir $release
 
 cp -r lessons $release
-cp -r cheatsheets $release
-cp -r slides $release
+#cp -r cheatsheets $release
+#cp -r slides $release
 cp *.md $release
 find $release -name "TODO*" -delete
 find $release -name "*answers*" -delete
