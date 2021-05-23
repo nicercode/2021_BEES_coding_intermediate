@@ -109,6 +109,9 @@ The pipe
 2 %>% rnorm(., 1, 0) 
 
 2 %>% rnorm(1, 0, .) 
+
+?rnorm() #TIP: To check what arguments you are check
+
 ```
 
 **Exercise**: Using the pipe, write expressions to
@@ -122,13 +125,15 @@ data$decimalLatitude %>% mean()
 2. List all the species names in alphabetic order
 
 ```{r}
-
+data %>% arrange(scientificName) %>% distinct(scientificName) 
 ```
 
 3. List all the species names in reverse alphabetic order
 
 ```{r}
 data$scientificName %>% unique() %>% sort() %>% rev()
+
+data %>% arrange(scientificName) %>% distinct(scientificName) 
 ```
 
 
@@ -148,7 +153,9 @@ The package `dplyr` is the uses verbs to describe the actions we want to take on
 Examples:
 
 ```{r}
-
+data %>% select(scientificName, genus, ends_with("tude")) %>% 
+  filter(genus == "Aonyx") %>% 
+  summarise(total_n = length(unique(.)))
 ```
 
 
@@ -185,26 +192,32 @@ data_subset <-
 1. Create a subset of the dataset consisting of only rows for the family "Mustelidae"
 
 ```{r}
-
+subset_mustelids <- data %>% filter(family == "Mustelidae")
 ```
 
-2. As above and only including variables `ScientificName`, `decimalLatitude`, `decimalLongitude `
+2. As above and only including variables `scientificName`, `decimalLatitude`, `decimalLongitude `
 
 ```{r}
-
+subset_mustelids <- data %>% filter(family == "Mustelidae") %>% 
+  select(scientificName, decimalLatitude, decimalLongitude)
 ```
 
 3. As above but with data sorted  by `decimalLatitude`
 
 ```{r}
-
+subset_mustelids <- data %>% filter(family == "Mustelidae") %>% 
+  select(scientificName, ends_with("tude")) %>% 
+  arrange(decimalLatitude)
+  
 ```
 
 4. As above but with an additional column  giving the absolute value of `decimalLatitude`
 
 ```{r}
-
-
+subset_mustelids <- data %>% filter(family == "Mustelidae") %>% 
+  select(scientificName, ends_with("tude")) %>% 
+  arrange(decimalLatitude) %>% 
+  mutate(abs_decimalLatitude = abs(decimalLatitude))
 ```
 
 ## group_by --  a type of for loop
