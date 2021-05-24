@@ -119,20 +119,76 @@ most_northern_south<-function(x){
   max(x[x<0])
 }
 
-group_by(carnivore_data,scientificName) %>%
+zz<-group_by(carnivore_data,scientificName) %>%
   summarize(most_northern_south(decimalLatitude))
 
 ```
 
-2. if your function returns -Inf for some cases, change what it returns to NA possibly using an if statement inside the function.  This is called handling edge cases ellagantly.  Of course this can be done outside the function, but it's a better, more robust function if this is done internally.  
+2. if your function returns -Inf for some cases, change what it returns to NA possibly using `na_if` or `ifelse` inside the function.  This is called handling edge cases ellegantly.  Of course this can be done outside the function, but it's a better, more robust function if this is done internally.  
 
 ```{r}
+most_northern_south_with_better_error_handing<-function(x){
+  y<-max(x[x<0])
+  z<-na_if(y,-Inf)
+  return(z)
+}
+
+most_northern_south_with_better_error_handing<-function(x){
+  if (all(x>0)) y<-NA
+  else y<-max(x[x<0])
+  return(y)
+}
+
+
+zz<-group_by(carnivore_data,scientificName) %>%
+  summarize(north_south=most_northern_south_with_better_error_handing(decimalLatitude))
+
 
 ```
 
-3. write a function that takes the dataframe and a family name and plots the distribution for each family and saves it to the output file 
+so pretty code to use later
 
 ```{r}
+world_map <- map_data("world")
+ggplot() +
+     geom_polygon(data=world_map, aes(x = long, y = lat, group = group),
+                  fill="darkgrey", colour = "white")
+```
+
+
+3. write a function that takes the dataframe and a family name and plots the distribution for each family and saves it to the output file in a folder called "figures"
+
+```{r}
+dir.create("figures")
+plot_family<-function(df,family){
+  df_specific_family <- filter(df,family==family)
+  world_map <- map_data("world")
+  ggplot(df_specific_family, aes(x = decimalLongitude, y = decimalLatitude)) +
+     geom_polygon(data=world_map, aes(x = long, y = lat, group = group),
+                  fill="darkgrey", colour = "white")+
+    geom_point()+
+    ggtitle(family)
+  ggsave(paste0("figures/",family,".pdf"))  
+}
+plot_family(carnivore_data,"Odobenidae")
+```
+
+4. Now re-write this function so it works with map, and make a plot of all the families
+
+```{r}
+plot_families<-function(fam,df){
+  df_specific_family <- filter(df,family==fam)
+  world_map <- map_data("world")
+  ggplot(df_specific_family, aes(x = decimalLongitude, y = decimalLatitude)) +
+     geom_polygon(data=world_map, aes(x = long, y = lat, group = group),
+                  fill="darkgrey", colour = "white")+
+    geom_point()+
+    ggtitle(fam)
+  ggsave(paste0("figures/",fam,".pdf"))  
+}
+
+family_list<-as.list(unique(carnivore_data$family))
+map(family_list,plot_families,df=carnivore_data)
 
 ```
 
@@ -160,25 +216,15 @@ carnivore_data <- list.files("data/species", full.names = TRUE) %>% map_df(load_
 
 **Challenge:** 
 
-1. the journal asks you to provide a list of species names with just the genus and species, e.g. 
-
-"Urva javanica" instead of "Urva javanica (E.Geoffroy St.Hilaire, 1818)"
-
-Write a function to separate out the first two words from scientificName and use a map function to apply this to the full species list
-
-Hint - the function `str_sep` may be helpful
-
+1. Some of the observations in GBIF are only identified to genus. Figure out how many this is and report for this dataset the percentage.  `str_to_sentence` or `toupper` or `word` might be useful.
 
 ```{r}
-species <- carnivore_data$scientificName %>% unique() %>% sort()
+carnivore_data$binom <- word(carnivore_data$scientificName,1,2) 
+sum(carnivore_data$binom!=str_to_sentence(carnivore_data$binom),na.rm=T)/length(carnivore_data$binom)
 
-short_name <- function(x) {
-  x2 <- x %>% str_split(" ")
-  paste(x2[[1]][1], x2[[1]][2])
-}
-
-carnivore_data$scientificName %>% map_chr(short_name)
+problems<-filter(carnivore_data,binom!=str_to_sentence(binom))
 ```
+
 
 **Exercise**: Your colleague asks you to match your data againt theirs. They have used 6-letter abbreviations for species, ie. "urvjav" for "Urva javanica"
 
