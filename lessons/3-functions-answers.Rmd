@@ -155,7 +155,6 @@ ggplot() +
                   fill="darkgrey", colour = "white")
 ```
 
-
 3. write a function that takes the dataframe and a family name and plots the distribution for each family and saves it to the output file in a folder called "figures"
 
 ```{r}
@@ -321,6 +320,44 @@ load_data <- function() {
 } 
 
 data <- load_data()
+
+```
+
+Extra exercises:
+
+1: Write your own function to convert `decimalLatitude` to degrees minutes and seconds e.g 42.3601 becomes 42° 21' 36.36"
+-For the degrees use the whole number part of the decimal
+-For the minutes multiply the remaining decimal by 60. Use the whole number part of the answer as minutes.
+-For the seconds multiply the new remaining decimal by 60
+Output degrees, minutes and seconds as separate columns
+
+```{r}
+carnivore_data$decimalLatitude[[1]] 
+str_detect(as.character(carnivore_data$decimalLatitude[[1]]), ".")
+
+convert_DMS <- function(data, var){
+  #Split up first numeric string by decimal place
+  parts <- str_split(as.character(carnivore_data$decimalLatitude[[1]]), "\\.", 2)
+  
+  #Assign the first element as degrees
+  degrees <- parts[[1]][1] %>% as.numeric
+  
+  #Add back in the decimal place and multiple second element by 60 and assign as minutes
+  minutes <- paste0(".",parts[[1]][2]) %>% as.numeric()*60
+  
+  #Split minutes by decimal place for seconds
+  second_part <- minutes %>% as.character() %>% str_split("\\.", 2)
+  
+  #Multiple values after the decimal place by 60 and assign as second
+  seconds <- paste0(".",second_part[[1]][2]) %>% as.numeric()*60
+  
+  #The return
+  data %>% mutate(degrees = degrees, 
+                  minutes = minutes,
+                  seconds = seconds)
+}
+
+convert_DMS(carnivore_data , decimalLatitude)
 
 ```
 
