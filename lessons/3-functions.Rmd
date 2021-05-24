@@ -61,7 +61,6 @@ Example 2 - tidy & turbo charge plotting
 
 make_plot <- function(data, this_year) {
   data %>%
-  data_gapminder %>%
     filter(year == this_year) %>%
     ggplot(aes(gdpPercap, lifeExp, colour = continent)) +
     geom_point(size=3) +
