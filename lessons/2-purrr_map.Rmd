@@ -119,21 +119,19 @@ The pipe
 1. Take the mean of all latitudes  (should be 5.16117)
 
 ```{r}
-data$decimalLatitude %>% mean()
+
 ```
 
 2. List all the species names in alphabetic order
 
 ```{r}
-data %>% arrange(scientificName) %>% distinct(scientificName) 
+
 ```
 
 3. List all the species names in reverse alphabetic order
 
 ```{r}
-data$scientificName %>% unique() %>% sort() %>% rev()
 
-data %>% arrange(scientificName) %>% distinct(scientificName) 
 ```
 
 
@@ -180,10 +178,7 @@ Challenge, what to do when doesn't work, which bit?
 - to trouble shoot, run the parts
 
 ```{r}
-data_subset <- 
-  data %>% 
-  select(Species, Latitude) %>% 
-  summarise(nspp = n_distinct(Species), max_lat = max(Latitude))
+
 ```
 
 
@@ -192,32 +187,25 @@ data_subset <-
 1. Create a subset of the dataset consisting of only rows for the family "Mustelidae"
 
 ```{r}
-subset_mustelids <- data %>% filter(family == "Mustelidae")
+
 ```
 
 2. As above and only including variables `scientificName`, `decimalLatitude`, `decimalLongitude `
 
 ```{r}
-subset_mustelids <- data %>% filter(family == "Mustelidae") %>% 
-  select(scientificName, decimalLatitude, decimalLongitude)
+
 ```
 
 3. As above but with data sorted  by `decimalLatitude`
 
 ```{r}
-subset_mustelids <- data %>% filter(family == "Mustelidae") %>% 
-  select(scientificName, ends_with("tude")) %>% 
-  arrange(decimalLatitude)
-  
+
 ```
 
 4. As above but with an additional column  giving the absolute value of `decimalLatitude`
 
 ```{r}
-subset_mustelids <- data %>% filter(family == "Mustelidae") %>% 
-  select(scientificName, ends_with("tude")) %>% 
-  arrange(decimalLatitude) %>% 
-  mutate(abs_decimalLatitude = abs(decimalLatitude))
+
 ```
 
 ## group_by --  a type of for loop
@@ -241,16 +229,9 @@ Split apply combine concept
 **Exercise:** Use dplyr's group_by function to get for each species, the number of records, min and max of decimalLatitude
 
 ```{r}
-data %>% 
-  group_by(scientificName) %>% 
-  summarise(
-    n = n(),
-    lat_min = min(decimalLatitude),
-    lat_max = max(decimalLatitude)
-    )
-```
 
-# Break!!!
+
+```
 
 # Vectorised functions
 
@@ -283,8 +264,13 @@ data <- data %>% bind_rows()
 
 Alternative way
 ```{r}
+data <- list.files("data/species", full.names = TRUE) %>% map_dfr(read_csv)
+
+# Or
+
 data <- list.files("data/species", full.names = TRUE) %>% map(read_csv) %>% bind_rows()
 ```
+
 
 How a map routine works works. 3 key steps
 
@@ -389,7 +375,11 @@ list.files("data/species", full.names = TRUE) %>% map_df(read_csv)
 Let's copy files to another directory
 
 ```{r}
+
+dir.create("output")
+
 input <- list.files("data/species", full.names = TRUE)
+
 output <- list.files("data/species") %>% paste0("data - ", .) %>% file.path("output",.)
 
 map2(input, output, file.copy)
