@@ -1,6 +1,6 @@
 ---
 title: "Introduction to `map`"
-author: Daniel Falster & Will Cornwell
+author: "Will Cornwell, Daniel Falster, Fonti Kar, Aniko Toth"
 output: html_notebook
 editor_options: 
   chunk_output_type: console
@@ -22,7 +22,7 @@ Here it is, constructed using for loops
 ```{r}
 files <- list.files("data/species", full.names = TRUE)
 data <- list()
-for(i in seq_along(files)) {
+for (i in seq_along(files)) {
   data[[i]] <- read_csv(files[i])
 }
 data <- data %>% bind_rows()
@@ -37,12 +37,7 @@ data <- list.files("data/species", full.names = TRUE) %>% map_df(read_csv)
 
 Comparing the above two methods, which do you prefer and why?
 
-```
-
-```
-
-So we'll now work through how and why the map function works.  
-
+So we'll now work through how and why the map function works.
 
 # Tidyverse refresh
 
@@ -67,25 +62,23 @@ library(tidyr)
 library(ggplot2)
 ```
 
-
 Now, let's try counting the number of species in each family
 
 First, try using for loop
 
 ```{r}
 n <- list()
-for(f in unique(data$family)) {
-  data_sub <- subset(data, data$family ==f)
-  n[[f]] <- data.frame(family=f, n = length(unique(data_sub$scientificName)))
+for (f in unique(data$family)) {
+  data_sub <- subset(data, data$family == f)
+  n[[f]] <- data.frame(family = f, n = n_distinct(data_sub$scientificName))
 }
 bind_rows(n)
 ```
 
 The tidyverse way
-
 ```{r}
-data %>% 
-  group_by(family) %>% 
+data %>%
+  group_by(family) %>%
   summarise(n = n_distinct(scientificName))
 ```
 
@@ -105,37 +98,45 @@ The pipe
 * you can control the input position of the next function with `.`:
 
 ```{r}
-2 %>% rnorm(1, 0) 
-2 %>% rnorm(., 1, 0) 
+2 %>% rnorm(1, 0)
+2 %>% rnorm(., 1, 0)
 
-2 %>% rnorm(1, 0, .) 
+2 %>% rnorm(1, 0, .)
 
-?rnorm() #TIP: To check what arguments you are check
-
+?rnorm() # TIP: To check what arguments you are check
 ```
 
-**Exercise**: Using the pipe, write expressions to
+**Exercises:** Using the pipe, write expressions to
 
 1. Take the mean of all latitudes  (should be 5.16117)
 
-```{r}
-
+```{r, drop}
+data$decimalLatitude %>% mean()
 ```
 
 2. List all the species names in alphabetic order
 
-```{r}
-
+```{r, drop}
+data %>%
+  arrange(scientificName) %>%
+  distinct(scientificName)
 ```
 
 3. List all the species names in reverse alphabetic order
 
-```{r}
+```{r, drop}
+data$scientificName %>%
+  unique() %>%
+  sort() %>%
+  rev()
 
+data %>%
+  arrange(scientificName) %>%
+  distinct(scientificName)
 ```
 
 
-## dplyr workflow
+## dplyr workflows
 
 The package `dplyr` is the uses verbs to describe the actions we want to take on the data
 
@@ -147,13 +148,13 @@ The package `dplyr` is the uses verbs to describe the actions we want to take on
 - `summarise`–> summarise data
 - `distinct` -> filter to each unique row
 
-
-Examples:
+Example:
 
 ```{r}
-data %>% select(scientificName, genus, ends_with("tude")) %>% 
-  filter(genus == "Aonyx") %>% 
-  summarise(total_n = length(unique(.)))
+data %>%
+  select(scientificName, genus, ends_with("tude")) %>%
+  filter(genus == "Aonyx") %>%
+  summarise(total_n = n())
 ```
 
 
@@ -169,43 +170,57 @@ My strategy for developing a dplyr/pipe workflow
 - reformat if you want
 - add assign <- on a different line
 
-```{r}
-
-```
 
 Challenge, what to do when doesn't work, which bit?
 
 - to trouble shoot, run the parts
 
 ```{r}
-
+data_subset <-
+  data %>%
+  select(Species, Latitude) %>%
+  summarise(
+    nspp = n_distinct(Species), 
+    max_lat = max(Latitude)
+    )
 ```
-
 
 **Exercises:** Apply the `dplyr` package and `pipes` to
 
 1. Create a subset of the dataset consisting of only rows for the family "Mustelidae"
 
-```{r}
-
+```{r, drop}
+subset_mustelids <- data %>% filter(family == "Mustelidae")
 ```
 
 2. As above and only including variables `scientificName`, `decimalLatitude`, `decimalLongitude `
 
-```{r}
-
+```{r, drop}
+subset_mustelids <- 
+  data %>%
+  filter(family == "Mustelidae") %>%
+  select(scientificName, decimalLatitude, decimalLongitude)
 ```
 
 3. As above but with data sorted  by `decimalLatitude`
 
-```{r}
-
+```{r, drop}
+subset_mustelids <- 
+  data %>%
+  filter(family == "Mustelidae") %>%
+  select(scientificName, ends_with("tude")) %>%
+  arrange(decimalLatitude)
 ```
 
 4. As above but with an additional column  giving the absolute value of `decimalLatitude`
 
-```{r}
-
+```{r, drop}
+subset_mustelids <- 
+  data %>%
+  filter(family == "Mustelidae") %>%
+  select(scientificName, ends_with("tude")) %>%
+  arrange(decimalLatitude) %>%
+  mutate(abs_decimalLatitude = abs(decimalLatitude))
 ```
 
 ## group_by --  a type of for loop
@@ -213,12 +228,12 @@ Challenge, what to do when doesn't work, which bit?
 Another useful dplyr function is `group_by`. This is a type of "for loop"
 
 ```{r}
-data %>% 
-  group_by(family) %>% 
+data %>%
+  group_by(family) %>%
   summarise(
     n_sp = n_distinct(scientificName),
     n_records = n()
-    )
+  )
 ```
 
 How does this work?  (white board)
@@ -226,29 +241,39 @@ How does this work?  (white board)
 Split apply combine concept
 
 
-**Exercise:** Use dplyr's group_by function to get for each species, the number of records, min and max of decimalLatitude
+**Exercises:** 
 
-```{r}
+1. Use dplyr's group_by function to get for each species, the number of records, min and max of decimalLatitude
 
-
+```{r, drop}
+data %>%
+  group_by(scientificName) %>%
+  summarise(
+    n = n(),
+    lat_min = min(decimalLatitude),
+    lat_max = max(decimalLatitude)
+  )
 ```
+
 
 # Vectorised functions
 
 Lots of functions naturally work like a for loop. These are what's called vectorised - which means they apply to all elements 
 
-```{r}
+```{r, drop}
 
 data$scientificName %>% str_length()
 
-data$scientificName %>% unique() %>% str_length()
+data$scientificName %>%
+  unique() %>%
+  str_length()
 ```
 
-# Purrr & maps
+# Purrr: map and walk
 
 Let's now look at the functions included in the package [purrr](https://purrr.tidyverse.org). According to the website, *"purrr enhances R’s functional programming (FP) tool kit by providing a complete and consistent set of tools for working with functions and vectors. If you’ve never heard of FP before, the best place to start is the family of map() functions which allow you to replace many for loops with code that is both more succinct and easier to read."*
 
-use this when the action you want to repeat can't be achieved in dataframe  piped workflow, or with vectorised function. 
+Use this when the action you want to repeat can't be achieved in dataframe  piped workflow, or with vectorised function. 
 
 makes use of lists!
 
@@ -256,7 +281,7 @@ loading files
 ```{r}
 files <- list.files("data/species", full.names = TRUE)
 data <- list()
-for(i in seq_along(files)) {
+for (i in seq_along(files)) {
   data[[i]] <- read_csv(files[i])
 }
 data <- data %>% bind_rows()
@@ -264,13 +289,11 @@ data <- data %>% bind_rows()
 
 Alternative way
 ```{r}
-data <- list.files("data/species", full.names = TRUE) %>% map_dfr(read_csv)
-
-# Or
-
-data <- list.files("data/species", full.names = TRUE) %>% map(read_csv) %>% bind_rows()
+data <- 
+  list.files("data/species", full.names = TRUE) %>%
+  map(read_csv) %>%
+  bind_rows()
 ```
-
 
 How a map routine works works. 3 key steps
 
@@ -295,38 +318,38 @@ map(files, read_csv) %>% bind_rows()
 
 files %>% map(read_csv)
 
-list.files("data/species", full.names = TRUE) %>% map(read_csv) %>% bind_rows()
+list.files("data/species", full.names = TRUE) %>%
+  map(read_csv) %>%
+  bind_rows()
 ```
 
 A simpler example, print letters 1:10
 
 ```{r}
-tmp <- map(letters[1:10], cat)
+letters[1:10] %>% walk(cat)
 ```
-
 
 Important to understand how a list works
 
-
-**Exercises**: Using the map function
+**Exercises:** Using the map function
 
 1. Load the first 10 files in the folder "data/species"
 
-```{r}
+```{r, drop}
+files <- list.files("data/species", full.names = TRUE)[1:10]
 
+files %>%
+  map(read_csv) %>%
+  bind_rows()
 ```
 
 
 2.  Split the dataset by family -- then count the number of rows. The function `split` is useful here.
 
-```{r}
-
-```
-
-Try something similar with our data
-
-```{r}
-
+```{r, drop}
+data %>%
+  split(.$family) %>%
+  map(nrow)
 ```
 
 
@@ -341,59 +364,49 @@ Variants allow for different sorts of return -- i.e. what are you getting back
 ### Returning an integer
 
 ```{r}
-data %>% 
-  split(.$family) %>% 
-  map(nrow) %>% 
+data %>%
+  split(.$family) %>%
+  map(nrow) %>%
   unlist()
 ```
-
 or 
-
-
 ```{r}
-data %>% 
-  split(.$family) %>% 
+data %>%
+  split(.$family) %>%
   map_int(nrow)
 ```
 
 ### Returning a dataframe
 
-
 ```{r}
-list.files("data/species", full.names = TRUE) %>% map(read_csv) %>% bind_rows()
+list.files("data/species", full.names = TRUE) %>%
+  map(read_csv) %>%
+  bind_rows()
 ```
-
 or
-
 ```{r}
-list.files("data/species", full.names = TRUE) %>% map_df(read_csv) 
+list.files("data/species", full.names = TRUE) %>% map_df(read_csv)
 ```
 
+### map2 -- when you have 2 inputs
 
-## map2  -- when you have 2 inputs
+Let's copy files to another directory, use the function `file.copy`
 
-Let's copy files to another directory
-
+Here we copy one file.
 ```{r}
-
 dir.create("output")
 
-input <- list.files("data/species", full.names = TRUE)
-
-output <- list.files("data/species") %>% paste0("data - ", .) %>% file.path("output",.)
-
-map2(input, output, file.copy)
+file.copy("data/species/Aonyx.csv", "output/data-Aonyx.csv")
 ```
 
-
-Could also use `walk2`
-
-```{r}
-walk2(input, output, file.copy)
-```
+Now let's copy all of them by calling map:
 
 ```{r}
-list.files("data/species", full.names = TRUE) %>% 
-  walk2(., str_replace(., "data/", "output/"), file.copy)
+# 
+location1 <- list.files("data/species", full.names = TRUE)
+location2 <- 
+  location1 %>% str_replace_all("data/species/", "output/data-")
+
+walk2(location1, location2, file.copy)
 ```
 

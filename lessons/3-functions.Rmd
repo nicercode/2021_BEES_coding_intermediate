@@ -1,6 +1,6 @@
 ---
 title: "Writing your own functions in R"
-author: "Will Cornwell & Daniel Falster"
+author: "Will Cornwell, Daniel Falster, Fonti Kar, Aniko Toth"
 output: html_notebook
 editor_options: 
   chunk_output_type: console
@@ -23,33 +23,43 @@ Use similar packages and data to yesterday
 library(tidyverse)
 ```
 
-This was the data we worked with yesterday:
+Introduce new dataset - gapminder
 
-```{r}
-carnivore_data <- list.files("data/species/", full.names = TRUE) %>% map_df(read_csv)
-```
-
-Introduce new dataset
 ```{r}
 data_gapminder <- read_csv("data/gapminder/gapminder-FiveYearData.csv")
 ```
 
-## First some cake
+## First, let's inspect the dataset
+
+Challenges:
+
+- run some basic summaries on the gapminder data
+  -  how many countries, years, continents are included in the data?
+  - what is the range of `lifeExp` & `gdpPercap` for each country?
+  - can you plot `lifeExp` vs `gdpPercap` in year 1992?
+  - can you plot `lifeExp` vs `gdpPercap` in year 1992, faceted by continent?  
+
+```{r, drop}
+
+```
+
+
+## Now some examples on what we can achieve
 
 Example 1 - tidy & turbo charge model fitting
 
 ```{r}
-fit_model <- function(data) { 
-  lm(lifeExp~gdpPercap, data=data)
+fit_model <- function(data) {
+  lm(lifeExp ~ gdpPercap, data = data)
 }
 
-get_r2 <- function(fit) { 
+get_r2 <- function(fit) {
   summary(fit)$r.squared
 }
 
-fits <- 
-  data_gapminder %>% 
-  split(.$country) %>% 
+fits <-
+  data_gapminder %>%
+  split(.$country) %>%
   map(fit_model)
 
 map_dbl(fits, get_r2)
@@ -57,26 +67,57 @@ map_dbl(fits, get_r2)
 
 
 Example 2 - tidy & turbo charge plotting
-```{r}
 
-make_plot <- function(data, this_year) {
+```{r}
+make_plot_year <- function(this_year, data) {
   data %>%
     filter(year == this_year) %>%
-    ggplot(aes(gdpPercap, lifeExp, colour = continent)) +
-    geom_point(size=3) +
-    scale_x_log10(limits =c(200, 200000)) +
-    scale_y_log10( limits = c(20, 100)) +
+    ggplot(aes(gdpPercap, lifeExp, colour = continent, size = log10(pop))) +
+    geom_point(alpha = 0.5) +
+    scale_x_log10(limits = c(200, 200000)) +
+    scale_y_log10(limits = c(20, 100)) +
     theme_minimal() +
     labs(x = "GDP per capita", y = "Life expectancy (yrs)", title = this_year)
 }
 
-make_plot(data_gapminder, 1982) %>% print()
+make_plot_year(1982, data_gapminder) %>% print()
+```
 
-dir.create("output/by_year", FALSE, TRUE)
-for(year in unique(data_gapminder$year)){
-  make_plot(data_gapminder, year) 
-  ggsave(paste0("output/by_year/", year, ".png"))
+The printing is kind of annoying, so could make another function:
+
+```{r}
+make_plot_year_print <- function(...) {
+  make_plot_year(...) %>% print()
 }
+
+make_plot_year_print(1982, data_gapminder)
+```
+
+No let's use our new skills to make lots of plots!
+
+```{r}
+years <- unique(data_gapminder$year)
+
+walk(years, make_plot_year_print, data_gapminder)
+
+for (year in years) {
+  make_plot_year_print(year, data_gapminder)
+}
+```
+
+Or we could save the plots
+```{r}
+save_plot <- function(this_year, data_gapminder, path = "output/by_year/") {
+  dir.create(path, FALSE, TRUE)
+  make_plot_year(this_year, data_gapminder)
+  ggsave(paste0(path, this_year, ".png"))
+}
+
+for (year in years) {
+  save_plot(year, data_gapminder)
+}
+
+years %>% walk(save_plot, data_gapminder)
 ```
 
 # Structure of a function
@@ -96,44 +137,58 @@ investigating structure of function f
 - named vs ordered arguments
 - default arguments
 
+Here's a simple example, implementing a simple function
+
 ```{r}
-mymean <- function(..., na.rm=TRUE) {
-  mean(..., na.rm=na.rm)
+mymean <- function(x) {
+  sum(x) / length(x)
 }
 ```
 
-**Exercises**: 
+**Exercises:**  
 
-Goal: extract the most northern observations for each species in the southern hemisphere
-
-Write a function that largest value that is below 0
-
-group_by and summerize using your new function
-
-1. 
+Load carnivore data
 ```{r}
 carnivore_data <- list.files("data/species", full.names = TRUE) %>% map_df(read_csv)
+```
 
+1. Extract the most northern observations for each species in the southern hemisphere Write a function that finds the largest value that is below 0
 
-most_northern_south<-function(x){
-  max(x[x<0])
+```{r, drop}
+find_largest_negative <- function(x) {
+  max(x[x < 0])
 }
 
-group_by(carnivore_data,scientificName) %>%
-  summarize(most_northern_south(decimalLatitude))
-
+carnivore_data %>% 
+  group_by(scientificName) %>%
+  summarise(most_northern_south = find_largest_negative(decimalLatitude))
 ```
 
-2. if your function returns -Inf for some cases, change what it returns to NA possibly using an if statement inside the function.  This is called handling edge cases ellagantly.  Of course this can be done outside the function, but it's a better, more robust function if this is done internally.  
+2. If your function returns -Inf for some cases, change what it returns to NA possibly using `na_if` or `ifelse` inside the function.  This is called handling edge cases ellegantly.  Of course this can be done outside the function, but it's a better, more robust function if this is done internally.  
 
-```{r}
+```{r, drop}
+find_largest_negative_better <- function(x) {
+  y <- max(x[x < 0])
+  na_if(y, -Inf)
+}
 
-```
+# OR
 
-3. write a function that takes the dataframe and a family name and plots the distribution for each family and saves it to the output file 
+find_largest_negative_better <- function(x) {
+  if (all(x > 0)) {
+    y <- NA
+  } else {
+    y <- max(x[x < 0])
+  }
+  return(y)
+}
 
-```{r}
 
+carnivore_data %>% 
+  group_by(scientificName) %>%
+  summarise(
+    north_south = find_largest_negative_better(decimalLatitude)
+    )
 ```
 
 
@@ -142,40 +197,100 @@ group_by(carnivore_data,scientificName) %>%
 From yesterday, we had this example
 
 ```{r}
-list.files("data/species", full.names = TRUE) %>% map_df(read_csv) 
+list.files("data/species", full.names = TRUE) %>% map_df(read_csv)
 ```
 
-What if we want to record which files each data point came from?
+What if we want to record which files each data point came from? Write a function that loads a file and adds the filename in a new column of the data
 
-**Exercise**: Write a function that loads a file and adds the filename in a new column of the data
+```{r, drop}
+load_file <- function(x) {
+  read_csv(x) %>% mutate(filename = x)
+}
+
+carnivore_data <- list.files("data/species", full.names = TRUE) %>% map_df(load_file)
+```
+
+**Exercises:**  We'll now make some plots
+
+some pretty code to use 
 
 ```{r}
+world_map <- map_data("world")
+ggplot() +
+  geom_polygon(
+    data = world_map, aes(x = long, y = lat, group = group),
+    fill = "darkgrey", colour = "white"
+  )
+```
 
+1. Write a function that takes the dataframe and a family name and plots the distribution for each family and saves it to the output file in a folder called "figures"
+
+```{r, drop}
+dir.create("figures")
+
+plot_family <- function(df, family) {
+  df_specific_family <-
+    filter(df, family == family)
+  world_map <- map_data("world")
+  ggplot(df_specific_family, aes(x = decimalLongitude, y = decimalLatitude)) +
+    geom_polygon(
+      data = world_map, aes(x = long, y = lat, group = group),
+      fill = "darkgrey", colour = "white"
+    ) +
+    geom_point() +
+    ggtitle(family)
+  ggsave(paste0("figures/", family, ".pdf"))
+}
+
+plot_family(carnivore_data, "Odobenidae")
+```
+
+2. Now re-write this function so it works with map, and make a plot of all the families
+
+```{r, drop}
+plot_families <- function(fam, df) {
+  df_specific_family <- filter(df, family == fam)
+  world_map <- map_data("world")
+  ggplot(df_specific_family, aes(x = decimalLongitude, y = decimalLatitude)) +
+    geom_polygon(
+      data = world_map, aes(x = long, y = lat, group = group),
+      fill = "darkgrey", colour = "white"
+    ) +
+    geom_point() +
+    ggtitle(fam)
+  ggsave(paste0("figures/", fam, ".pdf"))
+}
+
+family_list <- as.list(unique(carnivore_data$family))
+
+map(family_list, plot_families, df = carnivore_data)
+```
+
+3. Some of the observations in GBIF are only identified to genus. Figure out how many this is and report for this dataset the percentage.  `str_to_sentence` or `toupper` or `word` might be useful.
+
+```{r, drop}
+carnivore_data$binom <- word(carnivore_data$scientificName, 1, 2)
+sum(carnivore_data$binom != str_to_sentence(carnivore_data$binom), na.rm = T) / length(carnivore_data$binom)
+
+problems <- filter(carnivore_data, binom != str_to_sentence(binom))
 ```
 
 
-**Challenge:** 
+4. Your colleague asks you to match your data againt theirs. They have used 6-letter abbreviations for species, ie. "urvjav" for "Urva javanica". Write a function to separate out the first two words from scientificName and use a map function to apply this to the full specvies list
 
-1. the journal asks you to provide a list of species names with just the genus and species, e.g. 
+```{r, drop}
+species <- carnivore_data$scientificName %>%
+  unique() %>%
+  sort()
 
-"Urva javanica" instead of "Urva javanica (E.Geoffroy St.Hilaire, 1818)"
+very_short_name <- function(x) {
+  paste0(
+    word(x, 1, 1) %>% str_sub(1, 3),
+    word(x, 2, 2) %>% str_sub(1, 3)
+  )
+}
 
-Write a function to separate out the first two words from scientificName and use a map function to apply this to the full species list
-
-Hint - the function `str_sep` may be helpful
-
-
-```{r}
-
-```
-
-**Exercise**: Your colleague asks you to match your data againt theirs. They have used 6-letter abbreviations for species, ie. "urvjav" for "Urva javanica"
-
-Write a function to separate out the first two words from scientificName and use a map function to apply this to the full specvies list
-
-```{r}
-
-
+carnivore_data$scientificName %>% map_chr(very_short_name)
 ```
 
 ## Anonymous functions
@@ -183,27 +298,31 @@ Write a function to separate out the first two words from scientificName and use
 Remember we did this:
 
 ```{r}
-load_file <- function(x){
+load_file <- function(x) {
   read_csv(x) %>% mutate(filename = x)
 }
 
-list.files("data/species", full.names = TRUE) %>% map_df(load_file) 
+list.files("data/species", full.names = TRUE) %>% map_df(load_file)
 ```
 
 
 Another way:
 
 ```{r}
-list.files("data/species", full.names = TRUE) %>% 
-  map_df(~ read_csv(.x) %>% mutate(filename = .x)) 
+list.files("data/species", full.names = TRUE) %>%
+  map_df(~ read_csv(.x) %>% mutate(filename = .x))
 ```
 
 
-**Exercise**: Reimplement the following example as an anonynomous function
+**Exercises:** Reimplement the following example as an anonynomous function
 
-```{r}
+```{r, drop}
+short_name <- function(x) {
+  x2 <- x %>% str_split(" ")
+  paste(x2[[1]][1], x2[[1]][2])
+}
 
-
+carnivore_data$scientificName %>% map_chr(short_name)
 ```
 
 
@@ -214,12 +333,13 @@ Store these in another file and load using `source`
 Identify the bit that will differ and 
 
 
-**Exercise**: Write a function called `load_data` that loads the carnivora data and creates a column2 with short name and very short name
+**Exercises:** Write a function called `load_data` that loads the carnivora data and creates a column2 with short name and very short name
 
-```{r}
+```{r, drop}
 
 load_file <- function(x) {
-  read_csv(x, col_types = 
+  read_csv(x,
+    col_types =
       cols(
         scientificName = col_character(),
         family = col_character(),
@@ -227,37 +347,61 @@ load_file <- function(x) {
         decimalLongitude = col_double(),
         genus = col_character(),
         order = col_character()
-          )
-      ) %>% 
+      )
+  ) %>%
     mutate(filename = x)
 }
 
-short_name <- function(x) {
-  x2 <- x %>% str_split(" ")
-  paste(x2[[1]][1], x2[[1]][2])
-}
-
-
-very_short_name <- function(x) {
-  x2 <- x %>% str_split(" ")
-  paste0(str_sub(x2[[1]][1], 1,3), str_sub(x2[[1]][2], 1,3))
-}
 
 load_data <- function() {
-    list.files("data/species", full.names = TRUE) %>% 
+  list.files("data/species", full.names = TRUE) %>%
     map_df(load_file) %>%
     mutate(
       species = scientificName %>% map_chr(short_name),
       species6 = scientificName %>% map_chr(very_short_name)
     )
-} 
+}
 
 data <- load_data()
-
 ```
 
+## Extra exercises
 
+1. Write your own function to convert `decimalLatitude` to degrees minutes and seconds e.g 42.3601 becomes 42° 21' 36.36"
+  - For the degrees use the whole number part of the decimal
+  - For the minutes multiply the remaining decimal by 60. Use the whole number part of the answer as minutes.
+  - For the seconds multiply the new remaining decimal by 60
+  - Output degrees, minutes and seconds as separate columns
 
+```{r, drop}
+carnivore_data$decimalLatitude[[1]]
+str_detect(as.character(carnivore_data$decimalLatitude[[1]]), ".")
 
+convert_DMS <- function(data, var) {
+  # Split up first numeric string by decimal place
+  parts <- str_split(as.character(carnivore_data[[var]]), "\\.", 2)
 
+  # Assign the first element as degrees
+  degrees <- parts[[1]][1] %>% as.numeric()
 
+  # Add back in the decimal place and multiple second element by 60 and assign as minutes
+  minutes <- paste0(".", parts[[1]][2]) %>% as.numeric() * 60
+
+  # Split minutes by decimal place for seconds
+  second_part <- minutes %>%
+    as.character() %>%
+    str_split("\\.", 2)
+
+  # Multiple values after the decimal place by 60 and assign as second
+  seconds <- paste0(".", second_part[[1]][2]) %>% as.numeric() * 60
+
+  # The return
+  data %>% mutate(
+    degrees = degrees,
+    minutes = minutes,
+    seconds = seconds
+  )
+}
+
+convert_DMS(carnivore_data, decimalLatitude)
+```
