@@ -72,8 +72,8 @@ Example 2 - tidy & turbo charge plotting
 make_plot_year <- function(this_year, data) {
   data %>%
     filter(year == this_year) %>%
-    ggplot(aes(gdpPercap, lifeExp, colour = continent, size =  log10(pop))) +
-    geom_point(alpha=0.5) +
+    ggplot(aes(gdpPercap, lifeExp, colour = continent, size = log10(pop))) +
+    geom_point(alpha = 0.5) +
     scale_x_log10(limits = c(200, 200000)) +
     scale_y_log10(limits = c(20, 100)) +
     theme_minimal() +
@@ -100,20 +100,22 @@ years <- unique(data_gapminder$year)
 
 walk(years, make_plot_year_print, data_gapminder)
 
-for (year in years)
+for (year in years) {
   make_plot_year_print(year, data_gapminder)
+}
 ```
 
 Or we could save the plots
 ```{r}
-save_plot <- function(this_year, data_gapminder, path="output/by_year/") {
+save_plot <- function(this_year, data_gapminder, path = "output/by_year/") {
   dir.create(path, FALSE, TRUE)
   make_plot_year(this_year, data_gapminder)
   ggsave(paste0(path, this_year, ".png"))
 }
 
-for (year in years)
+for (year in years) {
   save_plot(year, data_gapminder)
+}
 
 years %>% walk(save_plot, data_gapminder)
 ```
@@ -154,35 +156,35 @@ group_by and summerize using your new function
 carnivore_data <- list.files("data/species", full.names = TRUE) %>% map_df(read_csv)
 
 
-most_northern_south<-function(x){
-  max(x[x<0])
+most_northern_south <- function(x) {
+  max(x[x < 0])
 }
 
-zz<-group_by(carnivore_data,scientificName) %>%
+zz <- group_by(carnivore_data, scientificName) %>%
   summarize(most_northern_south(decimalLatitude))
-
 ```
 
 2. if your function returns -Inf for some cases, change what it returns to NA possibly using `na_if` or `ifelse` inside the function.  This is called handling edge cases ellegantly.  Of course this can be done outside the function, but it's a better, more robust function if this is done internally.  
 
 ```{r}
-most_northern_south_with_better_error_handing<-function(x){
-  y<-max(x[x<0])
-  z<-na_if(y,-Inf)
+most_northern_south_with_better_error_handing <- function(x) {
+  y <- max(x[x < 0])
+  z <- na_if(y, -Inf)
   return(z)
 }
 
-most_northern_south_with_better_error_handing<-function(x){
-  if (all(x>0)) y<-NA
-  else y<-max(x[x<0])
+most_northern_south_with_better_error_handing <- function(x) {
+  if (all(x > 0)) {
+    y <- NA
+  } else {
+    y <- max(x[x < 0])
+  }
   return(y)
 }
 
 
-zz<-group_by(carnivore_data,scientificName) %>%
-  summarize(north_south=most_northern_south_with_better_error_handing(decimalLatitude))
-
-
+zz <- group_by(carnivore_data, scientificName) %>%
+  summarize(north_south = most_northern_south_with_better_error_handing(decimalLatitude))
 ```
 
 so pretty code to use later
@@ -190,8 +192,10 @@ so pretty code to use later
 ```{r}
 world_map <- map_data("world")
 ggplot() +
-     geom_polygon(data=world_map, aes(x = long, y = lat, group = group),
-                  fill="darkgrey", colour = "white")
+  geom_polygon(
+    data = world_map, aes(x = long, y = lat, group = group),
+    fill = "darkgrey", colour = "white"
+  )
 ```
 
 
@@ -200,7 +204,7 @@ ggplot() +
 From yesterday, we had this example
 
 ```{r}
-list.files("data/species", full.names = TRUE) %>% map_df(read_csv) 
+list.files("data/species", full.names = TRUE) %>% map_df(read_csv)
 ```
 
 What if we want to record which files each data point came from?
@@ -208,11 +212,11 @@ What if we want to record which files each data point came from?
 **Exercise**: Write a function that loads a file and adds the filename in a new column of the data
 
 ```{r}
-load_file <- function(x){
+load_file <- function(x) {
   read_csv(x) %>% mutate(filename = x)
 }
 
-carnivore_data <- list.files("data/species", full.names = TRUE) %>% map_df(load_file) 
+carnivore_data <- list.files("data/species", full.names = TRUE) %>% map_df(load_file)
 ```
 
 
@@ -222,53 +226,58 @@ carnivore_data <- list.files("data/species", full.names = TRUE) %>% map_df(load_
 
 ```{r}
 dir.create("figures")
-plot_family<-function(df,family){
-  df_specific_family <- filter(df,family==family)
+plot_family <- function(df, family) {
+  df_specific_family <- filter(df, family == family)
   world_map <- map_data("world")
   ggplot(df_specific_family, aes(x = decimalLongitude, y = decimalLatitude)) +
-     geom_polygon(data=world_map, aes(x = long, y = lat, group = group),
-                  fill="darkgrey", colour = "white")+
-    geom_point()+
+    geom_polygon(
+      data = world_map, aes(x = long, y = lat, group = group),
+      fill = "darkgrey", colour = "white"
+    ) +
+    geom_point() +
     ggtitle(family)
-  ggsave(paste0("figures/",family,".pdf"))  
+  ggsave(paste0("figures/", family, ".pdf"))
 }
-plot_family(carnivore_data,"Odobenidae")
+plot_family(carnivore_data, "Odobenidae")
 ```
 
 2. Now re-write this function so it works with map, and make a plot of all the families
 
 ```{r}
-plot_families<-function(fam,df){
-  df_specific_family <- filter(df,family==fam)
+plot_families <- function(fam, df) {
+  df_specific_family <- filter(df, family == fam)
   world_map <- map_data("world")
   ggplot(df_specific_family, aes(x = decimalLongitude, y = decimalLatitude)) +
-     geom_polygon(data=world_map, aes(x = long, y = lat, group = group),
-                  fill="darkgrey", colour = "white")+
-    geom_point()+
+    geom_polygon(
+      data = world_map, aes(x = long, y = lat, group = group),
+      fill = "darkgrey", colour = "white"
+    ) +
+    geom_point() +
     ggtitle(fam)
-  ggsave(paste0("figures/",fam,".pdf"))  
+  ggsave(paste0("figures/", fam, ".pdf"))
 }
 
-family_list<-as.list(unique(carnivore_data$family))
-map(family_list,plot_families,df=carnivore_data)
-
+family_list <- as.list(unique(carnivore_data$family))
+map(family_list, plot_families, df = carnivore_data)
 ```
 
 
 3. Some of the observations in GBIF are only identified to genus. Figure out how many this is and report for this dataset the percentage.  `str_to_sentence` or `toupper` or `word` might be useful.
 
 ```{r}
-carnivore_data$binom <- word(carnivore_data$scientificName,1,2) 
-sum(carnivore_data$binom!=str_to_sentence(carnivore_data$binom),na.rm=T)/length(carnivore_data$binom)
+carnivore_data$binom <- word(carnivore_data$scientificName, 1, 2)
+sum(carnivore_data$binom != str_to_sentence(carnivore_data$binom), na.rm = T) / length(carnivore_data$binom)
 
-problems<-filter(carnivore_data,binom!=str_to_sentence(binom))
+problems <- filter(carnivore_data, binom != str_to_sentence(binom))
 ```
 
 
 4. Your colleague asks you to match your data againt theirs. They have used 6-letter abbreviations for species, ie. "urvjav" for "Urva javanica". Write a function to separate out the first two words from scientificName and use a map function to apply this to the full specvies list
 
 ```{r}
-species <- carnivore_data$scientificName %>% unique() %>% sort()
+species <- carnivore_data$scientificName %>%
+  unique() %>%
+  sort()
 
 very_short_name <- function(x) {
   paste0(
@@ -285,19 +294,19 @@ carnivore_data$scientificName %>% map_chr(very_short_name)
 Remember we did this:
 
 ```{r}
-load_file <- function(x){
+load_file <- function(x) {
   read_csv(x) %>% mutate(filename = x)
 }
 
-list.files("data/species", full.names = TRUE) %>% map_df(load_file) 
+list.files("data/species", full.names = TRUE) %>% map_df(load_file)
 ```
 
 
 Another way:
 
 ```{r}
-list.files("data/species", full.names = TRUE) %>% 
-  map_df(~ read_csv(.x) %>% mutate(filename = .x)) 
+list.files("data/species", full.names = TRUE) %>%
+  map_df(~ read_csv(.x) %>% mutate(filename = .x))
 ```
 
 
@@ -310,7 +319,6 @@ short_name <- function(x) {
 }
 
 carnivore_data$scientificName %>% map_chr(short_name)
-
 ```
 
 
@@ -326,7 +334,8 @@ Identify the bit that will differ and
 ```{r}
 
 load_file <- function(x) {
-  read_csv(x, col_types = 
+  read_csv(x,
+    col_types =
       cols(
         scientificName = col_character(),
         family = col_character(),
@@ -334,20 +343,20 @@ load_file <- function(x) {
         decimalLongitude = col_double(),
         genus = col_character(),
         order = col_character()
-          )
-      ) %>% 
+      )
+  ) %>%
     mutate(filename = x)
 }
 
 
 load_data <- function() {
-    list.files("data/species", full.names = TRUE) %>% 
+  list.files("data/species", full.names = TRUE) %>%
     map_df(load_file) %>%
     mutate(
       species = scientificName %>% map_chr(short_name),
       species6 = scientificName %>% map_chr(very_short_name)
     )
-} 
+}
 
 data <- load_data()
 ```
@@ -361,32 +370,36 @@ data <- load_data()
   - Output degrees, minutes and seconds as separate columns
 
 ```{r}
-carnivore_data$decimalLatitude[[1]] 
+carnivore_data$decimalLatitude[[1]]
 str_detect(as.character(carnivore_data$decimalLatitude[[1]]), ".")
 
-convert_DMS <- function(data, var){
-  #Split up first numeric string by decimal place
+convert_DMS <- function(data, var) {
+  # Split up first numeric string by decimal place
   parts <- str_split(as.character(carnivore_data[[var]]), "\\.", 2)
-  
-  #Assign the first element as degrees
-  degrees <- parts[[1]][1] %>% as.numeric
-  
-  #Add back in the decimal place and multiple second element by 60 and assign as minutes
-  minutes <- paste0(".",parts[[1]][2]) %>% as.numeric()*60
-  
-  #Split minutes by decimal place for seconds
-  second_part <- minutes %>% as.character() %>% str_split("\\.", 2)
-  
-  #Multiple values after the decimal place by 60 and assign as second
-  seconds <- paste0(".",second_part[[1]][2]) %>% as.numeric()*60
-  
-  #The return
-  data %>% mutate(degrees = degrees, 
-                  minutes = minutes,
-                  seconds = seconds)
+
+  # Assign the first element as degrees
+  degrees <- parts[[1]][1] %>% as.numeric()
+
+  # Add back in the decimal place and multiple second element by 60 and assign as minutes
+  minutes <- paste0(".", parts[[1]][2]) %>% as.numeric() * 60
+
+  # Split minutes by decimal place for seconds
+  second_part <- minutes %>%
+    as.character() %>%
+    str_split("\\.", 2)
+
+  # Multiple values after the decimal place by 60 and assign as second
+  seconds <- paste0(".", second_part[[1]][2]) %>% as.numeric() * 60
+
+  # The return
+  data %>% mutate(
+    degrees = degrees,
+    minutes = minutes,
+    seconds = seconds
+  )
 }
 
-convert_DMS(carnivore_data , decimalLatitude)
+convert_DMS(carnivore_data, decimalLatitude)
 ```
 
 
