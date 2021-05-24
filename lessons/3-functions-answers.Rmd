@@ -34,22 +34,31 @@ Introduce new dataset
 data_gapminder <- read_csv("data/gapminder/gapminder-FiveYearData.csv")
 ```
 
-## First some cake
+## First, let's inspect the dataset
+
+Challenges
+
+```{r}
+
+```
+
+
+## Now eat some cake
 
 Example 1 - tidy & turbo charge model fitting
 
 ```{r}
-fit_model <- function(data) { 
-  lm(lifeExp~gdpPercap, data=data)
+fit_model <- function(data) {
+  lm(lifeExp ~ gdpPercap, data = data)
 }
 
-get_r2 <- function(fit) { 
+get_r2 <- function(fit) {
   summary(fit)$r.squared
 }
 
-fits <- 
-  data_gapminder %>% 
-  split(.$country) %>% 
+fits <-
+  data_gapminder %>%
+  split(.$country) %>%
   map(fit_model)
 
 map_dbl(fits, get_r2)
@@ -59,24 +68,36 @@ map_dbl(fits, get_r2)
 Example 2 - tidy & turbo charge plotting
 ```{r}
 
-make_plot <- function(data, this_year) {
+make_plot_year <- function(data, this_year) {
   data %>%
     filter(year == this_year) %>%
     ggplot(aes(gdpPercap, lifeExp, colour = continent)) +
-    geom_point(size=3) +
-    scale_x_log10(limits =c(200, 200000)) +
-    scale_y_log10( limits = c(20, 100)) +
+    geom_point(size = 3) +
+    scale_x_log10(limits = c(200, 200000)) +
+    scale_y_log10(limits = c(20, 100)) +
     theme_minimal() +
     labs(x = "GDP per capita", y = "Life expectancy (yrs)", title = this_year)
 }
 
-make_plot(data_gapminder, 1982) %>% print()
+make_plot_year(data_gapminder, 1982) %>% print()
 
-dir.create("output/by_year", FALSE, TRUE)
-for(year in unique(data_gapminder$year)){
-  make_plot(data_gapminder, year) 
-  ggsave(paste0("output/by_year/", year, ".png"))
+years <- unique(data_gapminder$year)
+
+walk(years, ~make_plot_year(data_gapminder, .x) %>% print())
+```
+
+Or we could save the plots
+```{r}
+save_plot <- function(this_year, data_gapminder, path="output/by_year/") {
+  dir.create(path, FALSE, TRUE)
+  make_plot_year(data_gapminder, this_year)
+  ggsave(paste0(path, this_year, ".png"))
 }
+
+for (year in years)
+  save_plot(year, data_gapminder)
+
+years %>% walk(save_plot, data_gapminder)
 ```
 
 # Structure of a function
@@ -97,8 +118,8 @@ investigating structure of function f
 - default arguments
 
 ```{r}
-mymean <- function(..., na.rm=TRUE) {
-  mean(..., na.rm=na.rm)
+mymean <- function(..., na.rm = TRUE) {
+  mean(..., na.rm = na.rm)
 }
 ```
 
