@@ -276,7 +276,7 @@ problems <- filter(carnivore_data, binom != str_to_sentence(binom))
 ```
 
 
-4. Your colleague asks you to match your data againt theirs. They have used 6-letter abbreviations for species, ie. "urvjav" for "Urva javanica". Write a function to separate out the first two words from scientificName and use a map function to apply this to the full specvies list
+4. Your colleague asks you to match your data against theirs. They have used 6-letter abbreviations for species, i.e.. "urvjav" for "Urva javanica". Write a function to separate out the first two words from scientificName and use a map function to apply this to the full species list
 
 ```{r, drop}
 species <- carnivore_data$scientificName %>%
@@ -310,11 +310,16 @@ Another way:
 
 ```{r}
 list.files("data/species", full.names = TRUE) %>%
+  map_df(function(x) read_csv(x) %>% mutate(filename = x))
+
+
+# Or
+list.files("data/species", full.names = TRUE) %>%
   map_df(~ read_csv(.x) %>% mutate(filename = .x))
 ```
 
 
-**Exercises:** Reimplement the following example as an anonynomous function
+**Exercises:** Reimplement the following example as an anonymous function
 
 ```{r, drop}
 short_name <- function(x) {
@@ -333,7 +338,7 @@ Store these in another file and load using `source`
 Identify the bit that will differ and 
 
 
-**Exercises:** Write a function called `load_data` that loads the carnivora data and creates a column2 with short name and very short name
+**Exercises:** Write a function called `load_data` that loads the carnivora data and creates a column with short name and very short name
 
 ```{r, drop}
 
